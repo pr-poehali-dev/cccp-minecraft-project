@@ -2,19 +2,38 @@ import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import AdminPanel from '@/components/AdminPanel';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
-import { getPeople } from '@/lib/data';
+import { isAuthenticated } from '@/lib/auth';
+import { getPeople, getLeadershipDescription, updateLeadershipDescription } from '@/lib/data';
+import { useToast } from '@/hooks/use-toast';
 
 const Leadership = () => {
+  const isAdmin = isAuthenticated();
   const [leaders, setLeaders] = useState<any[]>([]);
+  const [description, setDescription] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = () => {
     const people = getPeople();
     const leadershipPeople = people.filter(p => 
       p.role.includes('ГенСек') || p.role.includes('Зам')
     );
     setLeaders(leadershipPeople);
-  }, []);
+    setDescription(getLeadershipDescription());
+  };
+
+  const handleSaveDescription = () => {
+    updateLeadershipDescription(description);
+    setEditMode(false);
+    toast({ title: 'Описание обновлено' });
+  };
 
   return (
     <Layout>
@@ -32,7 +51,37 @@ const Leadership = () => {
             <span className="text-primary text-6xl">☭</span>
           </div>
           <h2 className="text-3xl font-bold text-secondary mb-2">Центральный Комитет КПСС</h2>
-          <p className="text-muted-foreground">Высший орган партийной власти</p>
+          <div className="mt-4">
+            {editMode ? (
+              <div className="space-y-4 text-left max-w-2xl mx-auto">
+                <Textarea 
+                  value={description} 
+                  onChange={(e) => setDescription(e.target.value)} 
+                  className="bg-background min-h-24" 
+                  rows={3}
+                />
+                <div className="flex gap-2 justify-center">
+                  <Button onClick={handleSaveDescription} className="bg-primary">Сохранить</Button>
+                  <Button variant="outline" onClick={() => { setEditMode(false); setDescription(getLeadershipDescription()); }}>Отмена</Button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-muted-foreground">{description}</p>
+                {isAdmin && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => setEditMode(true)} 
+                    className="border-secondary text-secondary mt-3"
+                  >
+                    <Icon name="Edit" size={14} className="mr-1" />
+                    Редактировать
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </Card>
 
         <div className="space-y-6">
